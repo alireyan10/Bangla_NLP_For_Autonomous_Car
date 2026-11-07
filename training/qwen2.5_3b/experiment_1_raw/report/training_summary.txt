@@ -1,0 +1,10 @@
+TRAINING SUMMARY
+================
+Model: Qwen/Qwen2.5-3B
+Training Time: 23657.44 seconds
+Final Train Loss: 0.40000506128583635
+Best Eval Loss: 0.37270328402519226
+Trainable Parameters: 29933568
+Total Parameters: 1728606208
+Peak Memory: 3.39 GB
+GPU Used: NVIDIA GeForce RTX 2050

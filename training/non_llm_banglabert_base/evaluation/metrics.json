@@ -1,0 +1,23 @@
+{
+  "total_samples": 600,
+  "valid_json_count": 600,
+  "format_error_count": 0,
+  "json_validity_rate": 1.0,
+  "intent_accuracy": 0.8683333333333333,
+  "target_accuracy": 0.69,
+  "speed_category_accuracy": 0.9716666666666667,
+  "action_sequence_accuracy": 0.4666666666666667,
+  "step_count_accuracy": 0.9083333333333333,
+  "linear_speed_accuracy": 0.9383333333333334,
+  "angular_speed_accuracy": 0.9883333333333333,
+  "exact_match_4field_count": 197,
+  "exact_match_4field": 0.3283333333333333,
+  "exact_match_7field_count": 175,
+  "exact_match_7field": 0.2916666666666667,
+  "linear_speed_mae": 0.005083333333333334,
+  "angular_speed_mae": 0.002,
+  "tolerance": 0.001,
+  "average_latency_ms": 2.1853581666588675,
+  "model_parameters": 116041101,
+  "model_name": "csebuetnlp/banglabert"
+}

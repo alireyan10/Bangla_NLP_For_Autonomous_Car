@@ -1,0 +1,105 @@
+================================================================================
+INTENT CLASSIFICATION REPORT
+================================================================================
+                      precision    recall  f1-score   support
+
+      DECREASE_SPEED       0.00      0.00      0.00        16
+      INCREASE_SPEED       0.00      0.00      0.00        15
+       MOVE_BACKWARD       1.00      1.00      1.00        20
+           MOVE_FAST       0.59      1.00      0.75        22
+        MOVE_FORWARD       1.00      1.00      1.00        69
+MOVE_IN_FRONT_TARGET       0.80      0.70      0.74        23
+    MOVE_NEAR_TARGET       0.62      0.76      0.68        17
+         MOVE_NORMAL       1.00      1.00      1.00        19
+    MOVE_PAST_OBJECT       1.00      1.00      1.00        13
+           MOVE_SLOW       0.58      1.00      0.73        22
+  MOVE_TOWARD_TARGET       1.00      0.92      0.96        12
+         ROTATE_LEFT       0.45      0.60      0.51        15
+        ROTATE_RIGHT       0.55      0.57      0.56        21
+          SEQUENTIAL       1.00      1.00      1.00       263
+                STOP       1.00      1.00      1.00        16
+           TURN_LEFT       0.60      0.47      0.53        19
+          TURN_RIGHT       0.44      0.39      0.41        18
+
+            accuracy                           0.87       600
+           macro avg       0.68      0.73      0.70       600
+        weighted avg       0.84      0.87      0.85       600
+
+
+================================================================================
+TARGET CLASSIFICATION REPORT
+================================================================================
+                precision    recall  f1-score   support
+
+          NONE       0.98      1.00      0.99       398
+           bag       0.00      0.00      0.00         8
+       barrier       0.00      0.00      0.00         7
+           bed       0.00      0.00      0.00         3
+       bicycle       0.00      0.00      0.00         1
+  blocked path       0.00      0.00      0.00         7
+         board       0.00      0.00      0.00         1
+           box       0.07      0.17      0.10        18
+       cabinet       0.00      0.00      0.00         4
+           car       0.00      0.00      0.00         3
+         chair       0.00      0.00      0.00         8
+      cupboard       0.00      0.00      0.00         3
+          desk       0.00      0.00      0.00         2
+        doctor       0.00      0.00      0.00         0
+          door       0.10      0.38      0.16        24
+         group       0.00      0.00      0.00         4
+  intersection       0.00      0.00      0.00         3
+    motorcycle       0.00      0.00      0.00         3
+         nurse       0.00      0.00      0.00         2
+        pallet       0.00      0.00      0.00         2
+parked vehicle       0.00      0.00      0.00         1
+       patient       0.00      0.00      0.00         2
+        person       0.00      0.00      0.00        19
+          pole       0.00      0.00      0.00         2
+  refrigerator       0.00      0.00      0.00         6
+          road       0.00      0.00      0.00         6
+         shelf       0.00      0.00      0.00         1
+          sink       0.00      0.00      0.00         6
+          sofa       0.00      0.00      0.00         3
+       student       0.00      0.00      0.00         4
+         table       0.00      0.00      0.00         8
+       teacher       0.00      0.00      0.00         2
+       trolley       0.00      0.00      0.00        10
+          wall       0.07      0.22      0.10        18
+    wheelchair       0.00      0.00      0.00         5
+        worker       0.00      0.00      0.00         6
+
+      accuracy                           0.69       600
+     macro avg       0.03      0.05      0.04       600
+  weighted avg       0.66      0.69      0.67       600
+
+
+================================================================================
+SPEED CATEGORY CLASSIFICATION REPORT
+================================================================================
+              precision    recall  f1-score   support
+
+        FAST       0.91      0.97      0.94       104
+      NORMAL       0.99      0.98      0.99       354
+        SLOW       0.97      0.93      0.95       107
+        STOP       1.00      1.00      1.00        35
+
+    accuracy                           0.97       600
+   macro avg       0.97      0.97      0.97       600
+weighted avg       0.97      0.97      0.97       600
+
+
+================================================================================
+STEP COUNT CLASSIFICATION REPORT
+================================================================================
+              precision    recall  f1-score   support
+
+           1       1.00      1.00      1.00       337
+           2       1.00      1.00      1.00       128
+           3       1.00      1.00      1.00        97
+           4       1.00      1.00      1.00        38
+
+    accuracy                           1.00       600
+   macro avg       1.00      1.00      1.00       600
+weighted avg       1.00      1.00      1.00       600
+
+

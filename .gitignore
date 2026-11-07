@@ -1,0 +1,50 @@
+# ==========================================
+# Python & Environment
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+.env
+
+# ==========================================
+# Large Model Weights & Checkpoints (>100MB)
+# (GitHub rejects files over 100MB)
+# ==========================================
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+optimizer.pt
+scheduler.pt
+rng_state.pth
+
+# Intermediate & Model Output Checkpoints
+outputs/checkpoints/
+outputs/adapter/
+**/outputs/checkpoints/
+**/outputs/adapter/
+
+# Standalone transfer bundle
+QWEN_LINUX_TRANSFER/
+
+# ==========================================
+# OS & Editor Metadata
+# ==========================================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Microsoft Office temporary lock files
+~$*.docx
+~$*.pptx
+~$*.xlsx

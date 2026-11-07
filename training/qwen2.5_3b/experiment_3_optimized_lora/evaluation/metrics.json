@@ -1,0 +1,20 @@
+{
+    "total_samples": 600,
+    "valid_json_count": 600,
+    "format_error_count": 0,
+    "json_validity_rate": 1.0,
+    "intent_accuracy": 0.8866666666666667,
+    "target_accuracy": 0.9916666666666667,
+    "speed_category_accuracy": 0.9766666666666667,
+    "action_sequence_accuracy": 0.6383333333333333,
+    "step_count_accuracy": 1.0,
+    "linear_speed_accuracy": 0.9466666666666667,
+    "angular_speed_accuracy": 0.9883333333333333,
+    "exact_match_4field_count": 367,
+    "exact_match_4field": 0.6116666666666667,
+    "exact_match_7field_count": 349,
+    "exact_match_7field": 0.5816666666666667,
+    "linear_speed_mae": 0.003916666666666666,
+    "angular_speed_mae": 0.002,
+    "tolerance": 0.001
+}

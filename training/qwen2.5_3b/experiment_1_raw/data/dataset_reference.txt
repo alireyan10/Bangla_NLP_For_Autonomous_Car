@@ -1,0 +1,3 @@
+RAW Dataset V2
+Path: C:\Users\Reyan\Downloads\Case_Study\NEW dataset\data\dataset_v2.csv
+Splits: Train=2800, Val=600, Test=600

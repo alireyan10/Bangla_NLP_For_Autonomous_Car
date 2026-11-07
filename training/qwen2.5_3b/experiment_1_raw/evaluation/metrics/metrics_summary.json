@@ -1,0 +1,10 @@
+{
+    "total_samples": 600,
+    "format_success_rate": 1.0,
+    "format_errors": 0,
+    "accuracy_intent": 0.8616666666666667,
+    "accuracy_target": 0.9933333333333333,
+    "accuracy_speed": 0.9733333333333334,
+    "accuracy_action_sequence": 0.6216666666666667,
+    "exact_match_accuracy": 0.5883333333333334
+}
