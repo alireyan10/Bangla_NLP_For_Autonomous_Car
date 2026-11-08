@@ -85,11 +85,16 @@ def clean_and_correct_stt_text(raw_text: str) -> str:
     Cleans STT text by mapping unwanted acoustic noise words (e.g. 'কানে' -> 'ডানে', 'গুলো' -> 'ঘুরো')
     to domain-relevant robotics vocabulary using phonetic dictionary and fuzzy matching.
     """
-    # 0. Contextual phrase-level acoustic corrections
-    text = re.sub(r'(ডিগ্রি|ডিগ্রী)\s+গুলো', r'\1 ঘুরো', raw_text)
-    text = re.sub(r'(ডানে|বামে)\s+গুলো', r'\1 ঘুরো', text)
-    text = re.sub(r'(\d+)\s*ম\b', r'\1 মিটার', text)
+    # 0. Normalize unicode degree sign, unit abbreviations, and acoustic noise
+    text = re.sub(r'(\d+)\s*°', r'\1 ডিগ্রি ', raw_text)
+    text = text.replace('°', ' ডিগ্রি ')
+    text = re.sub(r'(\d+)\s*ম(?=[\s।,?!]|$)', r'\1 মিটার', text)
     text = re.sub(r'(\d+|এক|দুই|তিন|চার|পাঁচ|দশ)\s*মিনিট\s*(সামনে|পিছনে|এগোও|যাও|আসো)', r'\1 মিটার \2', text)
+
+    # Common STT acoustic confusions after degrees or directions:
+    # "পুরো", "করো", "গুলো", "ধরো" -> "ঘুরো"
+    text = re.sub(r'(ডিগ্রি|ডিগ্রী)\s+(?:পুরো|করো|গুলো|ধরো|হও)', r'\1 ঘুরো', text)
+    text = re.sub(r'(ডানে|বামে)\s+(?:পুরো|করো|গুলো|ধরো|হও)', r'\1 ঘুরো', text)
 
     words = text.split()
     corrected_words = []
@@ -445,10 +450,10 @@ def enrich_json_with_waypoints(json_str: str, text: str) -> str:
                     found_targets.append(clause_tgt)
                 break
 
-        # Clause-level action detection
+        # Clause-level action detection with directional precedence:
         if clause_tgt:
             act = "MOVE_NEAR_TARGET"
-        elif any(w in ['ঘুরো', 'ঘোরো', 'ঘোরা', 'ঘুরতে', 'ঘুরা', 'ডিগ্রি', 'ডিগ্রী', 'টার্ন', 'বাঁক'] for w in words):
+        elif any(w in ['ঘুরো', 'ঘোরো', 'ঘোরা', 'ঘুরতে', 'ঘুরা', 'ডিগ্রি', 'ডিগ্রী', 'টার্ন', 'বাঁক', 'বাঁকো', 'রোটেট'] for w in words) or '°' in c:
             if any(w in ['বামে', 'বাম', 'বামদিকে', 'লেফট'] for w in words):
                 act = "ROTATE_LEFT"
             else:
@@ -457,10 +462,10 @@ def enrich_json_with_waypoints(json_str: str, text: str) -> str:
             act = "TURN_RIGHT"
         elif any(w in ['বামে', 'বাম', 'বামদিকে'] for w in words):
             act = "TURN_LEFT"
-        elif any(w in ['সামনে', 'সোজা', 'আসো', 'এগোও', 'এগিয়ে'] for w in words):
-            act = "MOVE_FORWARD"
-        elif any(w in ['পেছনে', 'পিছনে', 'পিছে'] for w in words):
+        elif any(w in ['পেছনে', 'পিছনে', 'পিছে', 'ব্যাক', 'পেছাও', 'পিছাও'] for w in words):
             act = "MOVE_BACKWARD"
+        elif any(w in ['সামনে', 'সোজা', 'এগোও', 'এগিয়ে', 'ফরওয়ার্ড'] for w in words) or any(w in ['আসো', 'যাও', 'চলো'] for w in words):
+            act = "MOVE_FORWARD"
         else:
             act = "MOVE_FORWARD"
 
