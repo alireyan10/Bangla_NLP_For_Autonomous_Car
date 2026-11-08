@@ -116,6 +116,11 @@ Bangla_NLP_For_Autonomous_Car/
 │           ├── evaluation/                    # Predictions & metrics summary
 │           └── reports/                       # Validation logs
 │
+├── Voice/                                     # Voice-to-Action module (STT + Inference)
+│   ├── 1.mp4, 2.mp4, 3.mp4                    # Raw recorded voice samples
+│   ├── 1.wav, 2.wav, 3.wav                    # Converted 16kHz mono audio
+│   └── voice_to_action_pipeline.py            # End-to-end voice-to-JSON action script
+│
 ├── requirements.txt                           # Python dependencies
 ├── .gitignore                                 # Git rules (excludes heavy checkpoints >100MB)
 └── README.md                                  # Project overview and documentation
@@ -157,6 +162,12 @@ python inference.py --text "রোবট সোজা গিয়ে টেব�
 ```bash
 cd PREPROCESSING_EXPERIMENT/scripts
 python preprocess_dataset.py
+```
+
+### 4. Run Voice-to-Action Pipeline (Audio -> Bangla Text -> Robot JSON)
+```bash
+cd Voice
+python voice_to_action_pipeline.py --input "1.mp4"
 ```
 
 ---

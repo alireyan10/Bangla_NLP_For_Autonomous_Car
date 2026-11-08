@@ -34,6 +34,10 @@ outputs/adapter/
 # Standalone transfer bundle
 QWEN_LINUX_TRANSFER/
 
+# Converted Audio Files
+Voice/*.wav
+*.wav
+
 # ==========================================
 # OS & Editor Metadata
 # ==========================================
