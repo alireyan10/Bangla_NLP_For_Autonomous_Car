@@ -76,14 +76,22 @@ PHONETIC_REPLACEMENTS = {
     "ছুফা": "সোফা",
     "টিবিল": "টেবিল",
     "দাড়াও": "দাঁড়াও",
+    "ডিগ্রী": "ডিগ্রি",
+    "গুলো": "ঘুরো",  # Acoustic STT confusion for ঘোরো / ঘুরো
 }
 
 def clean_and_correct_stt_text(raw_text: str) -> str:
     """
-    Cleans STT text by mapping unwanted acoustic noise words (e.g. 'কানে' -> 'ডানে')
+    Cleans STT text by mapping unwanted acoustic noise words (e.g. 'কানে' -> 'ডানে', 'গুলো' -> 'ঘুরো')
     to domain-relevant robotics vocabulary using phonetic dictionary and fuzzy matching.
     """
-    words = raw_text.split()
+    # 0. Contextual phrase-level acoustic corrections
+    text = re.sub(r'(ডিগ্রি|ডিগ্রী)\s+গুলো', r'\1 ঘুরো', raw_text)
+    text = re.sub(r'(ডানে|বামে)\s+গুলো', r'\1 ঘুরো', text)
+    text = re.sub(r'(\d+)\s*ম\b', r'\1 মিটার', text)
+    text = re.sub(r'(\d+|এক|দুই|তিন|চার|পাঁচ|দশ)\s*মিনিট\s*(সামনে|পিছনে|এগোও|যাও|আসো)', r'\1 মিটার \2', text)
+
+    words = text.split()
     corrected_words = []
     corrections_made = []
 
@@ -415,9 +423,9 @@ def enrich_json_with_waypoints(json_str: str, text: str) -> str:
     }
 
     # Split compound sentence into sequential clauses (বাংলা কানেক্টর + কথ্য 'দেন')
-    connectors = r'\,?\s*(?:তারপর|দেন|পরে|এবং|অতঃপর|\,)\s*'
+    connectors = r'\,?\s*(?:তারপরে|তার\s*পর|এরপর(?:ে)?|এর\s*পর|তারপর|দেন|পরে|এবং|অতঃপর|\,)\s*'
     raw_clauses = re.split(connectors, text)
-    clauses = [c.strip() for c in raw_clauses if len(c.strip()) > 2]
+    clauses = [c.strip() for c in raw_clauses if len(c.strip()) > 1]
 
     clause_steps = []
     found_targets = []
@@ -425,7 +433,7 @@ def enrich_json_with_waypoints(json_str: str, text: str) -> str:
     for c in clauses:
         words = c.split()
         # Skip pure stopping clauses (handled by speed_category)
-        if any(w in ['থামো', 'দাঁড়াও', 'থামুন', 'থেমে'] for w in words):
+        if any(w in ['থামো', 'দাঁড়াও', 'থামুন', 'থেমে', 'স্টপ'] for w in words):
             continue
 
         clause_tgt = None
@@ -440,13 +448,18 @@ def enrich_json_with_waypoints(json_str: str, text: str) -> str:
         # Clause-level action detection
         if clause_tgt:
             act = "MOVE_NEAR_TARGET"
+        elif any(w in ['ঘুরো', 'ঘোরো', 'ঘোরা', 'ঘুরতে', 'ঘুরা', 'ডিগ্রি', 'ডিগ্রী', 'টার্ন', 'বাঁক'] for w in words):
+            if any(w in ['বামে', 'বাম', 'বামদিকে', 'লেফট'] for w in words):
+                act = "ROTATE_LEFT"
+            else:
+                act = "ROTATE_RIGHT"
         elif any(w in ['ডানে', 'ডান', 'ডানদিকে'] for w in words):
             act = "TURN_RIGHT"
         elif any(w in ['বামে', 'বাম', 'বামদিকে'] for w in words):
             act = "TURN_LEFT"
-        elif any(w in ['সামনে', 'সোজা'] for w in words):
+        elif any(w in ['সামনে', 'সোজা', 'আসো', 'এগোও', 'এগিয়ে'] for w in words):
             act = "MOVE_FORWARD"
-        elif any(w in ['পেছনে', 'পিছনে'] for w in words):
+        elif any(w in ['পেছনে', 'পিছনে', 'পিছে'] for w in words):
             act = "MOVE_BACKWARD"
         else:
             act = "MOVE_FORWARD"
@@ -464,6 +477,12 @@ def enrich_json_with_waypoints(json_str: str, text: str) -> str:
                 item["target"] = s["target"]
             execution_plan.append(item)
         data["execution_plan"] = execution_plan
+
+    # Stop command overrides speed
+    if any(w in ['থামো', 'দাঁড়াও', 'থামুন', 'থেমে', 'স্টপ'] for w in text.split()):
+        data["speed_category"] = "STOP"
+        data["linear_speed"] = 0.0
+        data["angular_speed"] = 0.0
 
     if found_targets:
         if len(found_targets) > 1:
