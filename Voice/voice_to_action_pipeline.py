@@ -1,13 +1,11 @@
 """
-Voice-to-Robot-Action End-to-End Pipeline
-=========================================
+
 1. Audio conversion: Any audio (.mp4, .m4a, .mp3) -> 16kHz Mono .wav via FFmpeg.
 2. Speech-to-Text: Transcribes Bangla audio via Google Speech Recognition API (bn-BD).
-3. Domain Noise Cleaner: Auto-corrects STT errors using robot vocabulary (e.g. 'কানে' -> 'ডানে').
+3. Domain Noise Cleaner: Auto-corrects STT errors using robot vocabulary 
 4. Action parsing: Multi-Head BanglaBERT (ultra-fast) OR Qwen2.5-3B (complex reasoning LLM).
 
-Usage:
-------
+
 # 1. Run all voices with BanglaBERT (default fast edge model):
 python Voice/voice_to_action_pipeline.py
 
@@ -19,6 +17,14 @@ python Voice/voice_to_action_pipeline.py --input "Voice/4.mp4" --model qwen
 
 # 4. Live Microphone input with Qwen:
 python Voice/voice_to_action_pipeline.py --mic --model qwen
+
+5. for BanglaBERT:
+python Voice/voice_to_action_pipeline.py --input "Voice/4.mp4" --model banglabert
+
+6.Activate folder :
+cd "C:\Users\Reyan\Downloads\Case_Study"
+.\bangla_robot_action_dataset\.venv\Scripts\Activate.ps1
+
 """
 
 import os
@@ -26,10 +32,8 @@ import sys
 import json
 import argparse
 import subprocess
-import shutil
 import io
 import difflib
-import re
 
 # Set UTF-8 encoding for Windows terminal safely without closing streams
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
@@ -76,27 +80,14 @@ PHONETIC_REPLACEMENTS = {
     "ছুফা": "সোফা",
     "টিবিল": "টেবিল",
     "দাড়াও": "দাঁড়াও",
-    "ডিগ্রী": "ডিগ্রি",
-    "গুলো": "ঘুরো",  # Acoustic STT confusion for ঘোরো / ঘুরো
 }
 
 def clean_and_correct_stt_text(raw_text: str) -> str:
     """
-    Cleans STT text by mapping unwanted acoustic noise words (e.g. 'কানে' -> 'ডানে', 'গুলো' -> 'ঘুরো')
+    Cleans STT text by mapping unwanted acoustic noise words (e.g. 'কানে' -> 'ডানে')
     to domain-relevant robotics vocabulary using phonetic dictionary and fuzzy matching.
     """
-    # 0. Normalize unicode degree sign, unit abbreviations, and acoustic noise
-    text = re.sub(r'(\d+)\s*°', r'\1 ডিগ্রি ', raw_text)
-    text = text.replace('°', ' ডিগ্রি ')
-    text = re.sub(r'(\d+)\s*ম(?=[\s।,?!]|$)', r'\1 মিটার', text)
-    text = re.sub(r'(\d+|এক|দুই|তিন|চার|পাঁচ|দশ)\s*মিনিট\s*(সামনে|পিছনে|এগোও|যাও|আসো)', r'\1 মিটার \2', text)
-
-    # Common STT acoustic confusions after degrees or directions:
-    # "পুরো", "করো", "গুলো", "ধরো" -> "ঘুরো"
-    text = re.sub(r'(ডিগ্রি|ডিগ্রী)\s+(?:পুরো|করো|গুলো|ধরো|হও)', r'\1 ঘুরো', text)
-    text = re.sub(r'(ডানে|বামে)\s+(?:পুরো|করো|গুলো|ধরো|হও)', r'\1 ঘুরো', text)
-
-    words = text.split()
+    words = raw_text.split()
     corrected_words = []
     corrections_made = []
 
@@ -168,34 +159,6 @@ def convert_to_wav(input_path: str, output_path: str = None) -> str:
 # ===========================================================================
 # 3. Speech-to-Text (Google API)
 # ===========================================================================
-def _patch_speech_recognition_with_ffmpeg():
-    """
-    Patches speech_recognition to use system ffmpeg for FLAC encoding
-    instead of the legacy 32-bit flac-win32.exe, which can fail with WinError 623.
-    """
-    try:
-        import speech_recognition as sr
-        if getattr(sr.AudioData, "_ffmpeg_patched", False):
-            return
-
-        original_get_flac_data = sr.AudioData.get_flac_data
-
-        def ffmpeg_get_flac_data(self, convert_rate=None, convert_width=None):
-            if shutil.which("ffmpeg"):
-                wav_data = self.get_wav_data(convert_rate, convert_width)
-                cmd = ["ffmpeg", "-y", "-loglevel", "error", "-i", "pipe:0", "-f", "flac", "pipe:1"]
-                proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                flac_data, _ = proc.communicate(wav_data)
-                if proc.returncode == 0 and flac_data.startswith(b"fLaC"):
-                    return flac_data
-            return original_get_flac_data(self, convert_rate, convert_width)
-
-        sr.AudioData.get_flac_data = ffmpeg_get_flac_data
-        sr.AudioData._ffmpeg_patched = True
-    except Exception:
-        pass
-
-
 def speech_to_bangla_text(wav_path: str) -> str:
     """Transcribes WAV audio to Bengali text using Google Speech API."""
     try:
@@ -203,8 +166,6 @@ def speech_to_bangla_text(wav_path: str) -> str:
     except ImportError:
         print("[Error] 'SpeechRecognition' library is missing. Install via: pip install SpeechRecognition")
         return None
-
-    _patch_speech_recognition_with_ffmpeg()
 
     recognizer = sr.Recognizer()
     with sr.AudioFile(wav_path) as source:
@@ -232,8 +193,6 @@ def listen_from_microphone(model_wrapper=None):
         print("[Error] 'SpeechRecognition' library is missing. Install via: pip install SpeechRecognition pyaudio")
         return None
 
-    _patch_speech_recognition_with_ffmpeg()
-
     recognizer = sr.Recognizer()
     try:
         with sr.Microphone() as source:
@@ -257,10 +216,9 @@ def listen_from_microphone(model_wrapper=None):
 
         if model_wrapper is not None:
             raw_json = model_wrapper.predict(bangla_text)
-            enriched_json = enrich_json_with_waypoints(raw_json, bangla_text)
             print("\n[Generated Autonomous Car Action JSON]:")
-            print(enriched_json)
-            return enriched_json
+            print(raw_json)
+            return raw_json
     except sr.UnknownValueError:
         print("[STT] Speech unclear or no sound detected.")
     except Exception as e:
@@ -299,9 +257,16 @@ class ModelPipelineWrapper:
         from peft import PeftModel
 
         model_name = "Qwen/Qwen2.5-3B"
-        adapter_dir = os.path.join(QWEN_EXP3_DIR, "outputs", "checkpoints", "checkpoint-1050")
-        if not os.path.exists(adapter_dir):
-            adapter_dir = os.path.join(PROJECT_ROOT, "training", "qwen2.5_3b", "experiment_1_raw", "outputs", "adapter")
+        adapter_candidates = [
+            os.path.join(SCRIPT_DIR, "adapter"),
+            os.path.join(PROJECT_ROOT, "adapter"),
+            os.path.join(QWEN_EXP3_DIR, "outputs", "checkpoints", "checkpoint-1050"),
+            os.path.join(PROJECT_ROOT, "training", "qwen2.5_3b", "experiment_3_optimized_lora", "outputs", "checkpoints", "checkpoint-1050"),
+            os.path.join(PROJECT_ROOT, "training", "qwen2.5_3b", "experiment_1_raw", "outputs", "adapter"),
+        ]
+        adapter_dir = next((c for c in adapter_candidates if os.path.exists(c)), None)
+        if adapter_dir is None:
+            adapter_dir = os.path.join(QWEN_EXP3_DIR, "outputs", "checkpoints", "checkpoint-1050")
 
         print(f"[Model Init] Loading Qwen2.5-3B LLM (4-bit QLoRA) from: {adapter_dir}...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
@@ -336,25 +301,6 @@ class ModelPipelineWrapper:
         if self.model is None:
             return "{\"error\": \"Qwen model not loaded\"}"
         import torch
-        from transformers import StoppingCriteria, StoppingCriteriaList
-
-        class JsonStoppingCriteria(StoppingCriteria):
-            def __init__(self, tokenizer, prompt_len):
-                self.tokenizer = tokenizer
-                self.prompt_len = prompt_len
-            def __call__(self, input_ids, scores, **kwargs):
-                decoded = self.tokenizer.decode(input_ids[0][self.prompt_len:], skip_special_tokens=True)
-                if '}' in decoded:
-                    s = decoded.find('{')
-                    e = decoded.rfind('}')
-                    if s != -1 and e != -1 and e >= s:
-                        try:
-                            json.loads(decoded[s:e+1])
-                            return True
-                        except Exception:
-                            pass
-                return False
-
         system_prompt = (
             "You are a robot command mapping assistant. "
             "Convert the given Bangla robot command into a structured JSON action plan "
@@ -367,136 +313,23 @@ class ModelPipelineWrapper:
         ]
         prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.model.device)
-        prompt_len = inputs["input_ids"].shape[1]
-
-        stop_criteria = StoppingCriteriaList([JsonStoppingCriteria(self.tokenizer, prompt_len)])
-
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
                 max_new_tokens=256,
                 do_sample=False,
-                pad_token_id=self.tokenizer.eos_token_id,
-                stopping_criteria=stop_criteria
+                pad_token_id=self.tokenizer.eos_token_id
             )
-        generated_ids = outputs[0][prompt_len:]
+        generated_ids = outputs[0][inputs["input_ids"].shape[1]:]
         raw_output = self.tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
-
-        # Cleanly extract pure JSON object
-        start_idx = raw_output.find('{')
-        if start_idx != -1:
-            brace_count = 0
-            end_idx = -1
-            for idx in range(start_idx, len(raw_output)):
-                if raw_output[idx] == '{':
-                    brace_count += 1
-                elif raw_output[idx] == '}':
-                    brace_count -= 1
-                    if brace_count == 0:
-                        end_idx = idx
-                        break
-            if end_idx != -1:
-                json_str = raw_output[start_idx:end_idx+1]
-                try:
-                    parsed = json.loads(json_str)
-                    return json.dumps(parsed, indent=2, ensure_ascii=False)
-                except Exception:
-                    return json_str
-
+        
+        # Clean JSON markdown fences if present
+        if "```json" in raw_output:
+            raw_output = raw_output.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_output:
+            raw_output = raw_output.split("```")[0].strip()
+            
         return raw_output
-
-
-def enrich_json_with_waypoints(json_str: str, text: str) -> str:
-    """
-    Enriches the predicted JSON with sequential multi-target waypoints
-    by analyzing individual clauses to ensure 100% correct action-to-target alignment.
-    """
-    try:
-        data = json.loads(json_str)
-    except Exception:
-        return json_str
-
-    target_map = {
-        "টেবিল": "table", "টেবিলের": "table",
-        "বিছানা": "bed", "বিছানার": "bed",
-        "সোফা": "sofa", "সোফার": "sofa",
-        "দরজা": "door", "দরজার": "door",
-        "চেয়ার": "chair", "চেয়ারের": "chair", "চেয়ার": "chair", "চেয়ারের": "chair",
-        "ডাস্টবিন": "dustbin", "ডাস্টবিনের": "dustbin",
-        "টিভি": "tv", "ফ্রিজ": "fridge", "আলমারি": "cupboard", "আলমারির": "cupboard",
-        "স্টেশন": "charging_station", "চার্জার": "charging_station"
-    }
-
-    # Split compound sentence into sequential clauses (বাংলা কানেক্টর + কথ্য 'দেন')
-    connectors = r'\,?\s*(?:তারপরে|তার\s*পর|এরপর(?:ে)?|এর\s*পর|তারপর|দেন|পরে|এবং|অতঃপর|\,)\s*'
-    raw_clauses = re.split(connectors, text)
-    clauses = [c.strip() for c in raw_clauses if len(c.strip()) > 1]
-
-    clause_steps = []
-    found_targets = []
-
-    for c in clauses:
-        words = c.split()
-        # Skip pure stopping clauses (handled by speed_category)
-        if any(w in ['থামো', 'দাঁড়াও', 'থামুন', 'থেমে', 'স্টপ'] for w in words):
-            continue
-
-        clause_tgt = None
-        for w in words:
-            clean_w = w.strip("।,?! ")
-            if clean_w in target_map:
-                clause_tgt = target_map[clean_w]
-                if not found_targets or found_targets[-1] != clause_tgt:
-                    found_targets.append(clause_tgt)
-                break
-
-        # Clause-level action detection with directional precedence:
-        if clause_tgt:
-            act = "MOVE_NEAR_TARGET"
-        elif any(w in ['ঘুরো', 'ঘোরো', 'ঘোরা', 'ঘুরতে', 'ঘুরা', 'ডিগ্রি', 'ডিগ্রী', 'টার্ন', 'বাঁক', 'বাঁকো', 'রোটেট'] for w in words) or '°' in c:
-            if any(w in ['বামে', 'বাম', 'বামদিকে', 'লেফট'] for w in words):
-                act = "ROTATE_LEFT"
-            else:
-                act = "ROTATE_RIGHT"
-        elif any(w in ['ডানে', 'ডান', 'ডানদিকে'] for w in words):
-            act = "TURN_RIGHT"
-        elif any(w in ['বামে', 'বাম', 'বামদিকে'] for w in words):
-            act = "TURN_LEFT"
-        elif any(w in ['পেছনে', 'পিছনে', 'পিছে', 'ব্যাক', 'পেছাও', 'পিছাও'] for w in words):
-            act = "MOVE_BACKWARD"
-        elif any(w in ['সামনে', 'সোজা', 'এগোও', 'এগিয়ে', 'ফরওয়ার্ড'] for w in words) or any(w in ['আসো', 'যাও', 'চলো'] for w in words):
-            act = "MOVE_FORWARD"
-        else:
-            act = "MOVE_FORWARD"
-
-        clause_steps.append({"action": act, "target": clause_tgt})
-
-    # If multi-clause sequence is detected, align action_sequence and execution_plan
-    if len(clause_steps) >= 2:
-        data["action_sequence"] = [s["action"] for s in clause_steps]
-        data["step_count"] = len(clause_steps)
-        execution_plan = []
-        for i, s in enumerate(clause_steps, 1):
-            item = {"step": i, "action": s["action"]}
-            if s["target"]:
-                item["target"] = s["target"]
-            execution_plan.append(item)
-        data["execution_plan"] = execution_plan
-
-    # Stop command overrides speed
-    if any(w in ['থামো', 'দাঁড়াও', 'থামুন', 'থেমে', 'স্টপ'] for w in text.split()):
-        data["speed_category"] = "STOP"
-        data["linear_speed"] = 0.0
-        data["angular_speed"] = 0.0
-
-    if found_targets:
-        if len(found_targets) > 1:
-            data["target"] = found_targets
-        elif len(found_targets) == 1:
-            data["target"] = found_targets[0]
-        data["all_targets"] = found_targets
-
-    return json.dumps(data, indent=2, ensure_ascii=False)
 
 
 def run_pipeline(input_audio_path: str, model_wrapper=None):
@@ -519,10 +352,9 @@ def run_pipeline(input_audio_path: str, model_wrapper=None):
     if model_wrapper is not None:
         print(f"[Model] Parsing action slots using '{model_wrapper.model_type}'...")
         raw_json = model_wrapper.predict(bangla_text)
-        enriched_json = enrich_json_with_waypoints(raw_json, bangla_text)
         print("\n[Action JSON Output]:")
-        print(enriched_json)
-        return enriched_json
+        print(raw_json)
+        return raw_json
 
     return None
 

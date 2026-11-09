@@ -33,6 +33,7 @@ outputs/adapter/
 
 # Standalone transfer bundle
 QWEN_LINUX_TRANSFER/
+VOICE_ROS2_TRANSFER/
 
 # Converted Audio Files
 Voice/*.wav
